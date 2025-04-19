@@ -67,23 +67,74 @@ function analyzeMessage(content: string, index: number): Message {
   const foundSuspiciousWords = suspiciousWords.filter(word => 
     content.toLowerCase().includes(word)
   );
-  
-  let riskScore = Math.min(foundSuspiciousWords.length * 0.2, 0.9);
-  
-  riskScore += Math.random() * 0.1;
-  
-  let riskLevel: RiskLevel = "low";
-  if (riskScore > 0.8) {
-    riskLevel = "high";
-  } else if (riskScore > 0.5) {
-    riskLevel = "medium";
-  }
-  
-  const flags: string[] = [];
+
+  const socialEngineeringPatterns = {
+    pretexting: [
+      /\b(IT|tech|support|helpdesk|administrator|admin)\b.*?\b(need|require|verify|confirm)\b/i,
+      /\b(password|credentials|access|verification)\b.*?\b(required|needed|expired|reset)\b/i,
+      /\b(verify|confirm|authenticate|validate)\b.*?\b(identity|account|yourself)\b/i
+    ],
+    
+    urgency: [
+      /\b(urgent|asap|immediately|quick|hurry|emergency)\b/i,
+      /\b(before|expires?|deadline)\b.*?\b(soon|today|tomorrow|minutes?|hours?)\b/i,
+      /\b(time.*?running.*?out|last chance|limited time|act now|don'?t wait)\b/i
+    ],
+    
+    authority: [
+      /\b(CEO|CFO|CTO|supervisor|boss|manager)\b.*?\b(asked|requested|needs|wants|demands)\b/i,
+      /\b(corporate|executive|management|board)\b.*?\b(directive|policy|requirement)\b/i,
+      /\b(compliance|audit|mandatory|protocol|procedure)\b/i
+    ],
+    
+    curiosity: [
+      /\b(won'?t believe|guess what|check.*?out|look.*?what|amazing|interesting)\b/i,
+      /\b(discovered|found|shocking|surprising|unbelievable)\b/i,
+      /\b(secret|exclusive|insider|confidential|private)\b.*?\b(info|information|news)\b/i
+    ],
+    
+    scarcity: [
+      /\b(only|just)\b.*?\b(\d+)\b.*?\b(left|remaining|available)\b/i,
+      /\b(limited|exclusive|special)\b.*?\b(offer|opportunity|access|time)\b/i,
+      /\b(expires?|ending|closing)\b.*?\b(soon|today|tomorrow)\b/i
+    ],
+    
+    manipulation: [
+      /\b(don'?t.*?trust|no.*?trust|trust.*?issues?)\b/i,
+      /\b(thought|believed|expected)\b.*?\b(better|friend|colleague|professional)\b/i,
+      /\b(disappointed|shame|guilt|regret)\b/i,
+      /\b(let.*?down|counting.*?on.*?you|depending.*?on.*?you)\b/i
+    ]
+  };
+
   const contentLower = content.toLowerCase();
-  
-  if (foundSuspiciousWords.length > 0) {
-    flags.push(`Contains suspicious keywords: ${foundSuspiciousWords.join(', ')}`);
+  const flags: string[] = [];
+
+  // Check for social engineering patterns
+  for (const [technique, patterns] of Object.entries(socialEngineeringPatterns)) {
+    const matchedPatterns = patterns.filter(pattern => pattern.test(content));
+    if (matchedPatterns.length > 0) {
+      switch (technique) {
+        case 'pretexting':
+          flags.push("⚠️ Potential pretexting attempt (impersonating trusted role)");
+          break;
+        case 'urgency':
+          flags.push("⚡ Creates artificial time pressure");
+          break;
+        case 'authority':
+          flags.push("👔 Appeals to authority or hierarchical pressure");
+          break;
+        case 'curiosity':
+          flags.push("🎣 Exploits curiosity or clickbait tactics");
+          break;
+        case 'scarcity':
+          flags.push("⌛ Uses scarcity or FOMO tactics");
+          break;
+        case 'manipulation':
+          flags.push("🎭 Emotional manipulation (guilt/shame/trust)");
+          break;
+      }
+    }
   }
 
   if (content.includes("http://") || content.includes("https://")) {
@@ -152,11 +203,22 @@ function analyzeMessage(content: string, index: number): Message {
     flags.push("Potential emotional manipulation");
   }
 
-  riskScore = Math.min(riskScore + (flags.length * 0.1), 1);
+  let riskScore = Math.min((flags.length * 0.15) + (foundSuspiciousWords.length * 0.1), 0.95);
   
-  if (riskScore > 0.8) {
+  if (flags.some(f => f.includes("pretexting")) && flags.some(f => f.includes("urgency"))) {
+    riskScore += 0.2; // Pretexting + Urgency is a dangerous combination
+  }
+  
+  if (flags.some(f => f.includes("authority")) && flags.some(f => f.includes("manipulation"))) {
+    riskScore += 0.15; // Authority + Emotional manipulation is concerning
+  }
+
+  riskScore = Math.min(riskScore, 1); // Cap at 1.0
+  
+  let riskLevel: RiskLevel = "low";
+  if (riskScore > 0.7) {
     riskLevel = "high";
-  } else if (riskScore > 0.5) {
+  } else if (riskScore > 0.4) {
     riskLevel = "medium";
   }
 
