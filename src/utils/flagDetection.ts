@@ -10,44 +10,87 @@ export function detectFlags(content: string): string[] {
     if (matchedPatterns.length > 0) {
       switch (technique) {
         case 'pretexting':
-          flags.push("⚠️ Potential pretexting attempt (impersonating trusted role)");
+          flags.push("🎭 Impersonating IT/Support Staff");
+          flags.push("⚠️ Requesting Sensitive Information");
+          flags.push("👤 False Identity Claims");
           break;
         case 'urgency':
-          flags.push("⚡ Creates artificial time pressure");
+          flags.push("⚡ Artificial Time Pressure");
+          flags.push("⏰ Urgent Action Required");
+          flags.push("🚨 Emergency-Based Manipulation");
           break;
         case 'authority':
-          flags.push("👔 Appeals to authority or hierarchical pressure");
+          flags.push("👔 Authority Figure Impersonation");
+          flags.push("📋 False Management Directives");
+          flags.push("💼 Corporate Authority Abuse");
           break;
         case 'curiosity':
-          flags.push("🎣 Exploits curiosity or clickbait tactics");
+          flags.push("🎣 Clickbait Tactics");
+          flags.push("🔍 Exploiting Natural Curiosity");
+          flags.push("🎯 Targeted Interest Manipulation");
           break;
         case 'scarcity':
-          flags.push("⌛ Uses scarcity or FOMO tactics");
+          flags.push("⌛ Time-Limited Offer");
+          flags.push("📊 Limited Availability Claims");
+          flags.push("💫 FOMO Manipulation");
           break;
         case 'manipulation':
-          flags.push("🎭 Emotional manipulation (guilt/shame/trust)");
+          flags.push("💔 Emotional Manipulation");
+          flags.push("🤝 Trust Exploitation");
+          flags.push("😔 Guilt/Shame Tactics");
           break;
       }
     }
   }
 
-  // URL checks
+  // URL checks with more specific flags
   if (content.includes("http://") || content.includes("https://")) {
-    flags.push("Contains URL");
+    flags.push("🔗 Contains External URL");
+    
     if (content.includes("http://")) {
-      flags.push("Uses insecure HTTP protocol");
+      flags.push("⚠️ Insecure HTTP Protocol");
     }
+    
     if (content.match(/bit\.ly|tinyurl|goo\.gl|t\.co/i)) {
-      flags.push("Uses URL shortener (potentially hiding malicious link)");
+      flags.push("🔗 Suspicious URL Shortener");
+      flags.push("🕵️ Hidden Destination URL");
+    }
+    
+    if (content.match(/login|signin|account|verify|password/i)) {
+      flags.push("🎣 Potential Phishing URL");
     }
   }
 
-  // Email checks
+  // Email checks with more detailed flags
   if (content.includes("@") && content.match(/\S+@\S+\.\S+/)) {
-    flags.push("Contains email address");
+    flags.push("📧 Contains Email Address");
+    
     if (content.match(/\.(ru|cn|tk|top|xyz|pw)\b/i)) {
-      flags.push("Contains email from suspicious domain");
+      flags.push("⚠️ Suspicious Email Domain");
+      flags.push("🌍 High-Risk Country TLD");
     }
+    
+    if (content.match(/support|help|admin|security|verify/i)) {
+      flags.push("👤 Suspicious Sender Role");
+    }
+  }
+
+  // Financial manipulation checks
+  if (content.match(/money|payment|transfer|crypto|bitcoin|wallet|bank/i)) {
+    flags.push("💰 Financial Manipulation");
+    flags.push("🏦 Banking/Payment Related");
+  }
+
+  // Personal information requests
+  if (content.match(/ssn|social security|credit card|cvv|passport|license/i)) {
+    flags.push("🔒 Personal Info Request");
+    flags.push("🚫 Sensitive Data Risk");
+  }
+
+  // Attachment or download flags
+  if (content.match(/download|attach|file|document|invoice|report/i)) {
+    flags.push("📎 Contains Attachment Reference");
+    flags.push("📁 File Download Request");
   }
 
   return flags;
